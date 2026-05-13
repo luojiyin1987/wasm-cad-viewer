@@ -23,9 +23,30 @@ const workerScope = self as DedicatedWorkerGlobalScope;
 
 let modulePromise: Promise<MainModule> | null = null;
 let libreDwgPromise: Promise<LibreDwg> | null = null;
+const queue: DwgWorkerRequest[] = [];
+let isBusy = false;
 
-workerScope.addEventListener("message", async (event: MessageEvent<DwgWorkerRequest>) => {
-  const { id, fileData } = event.data;
+workerScope.addEventListener("message", (event: MessageEvent<DwgWorkerRequest>) => {
+  queue.push(event.data);
+  void processQueue();
+});
+
+async function processQueue(): Promise<void> {
+  if (isBusy) {
+    return;
+  }
+  isBusy = true;
+
+  while (queue.length > 0) {
+    const request = queue.shift()!;
+    await processRequest(request);
+  }
+
+  isBusy = false;
+}
+
+async function processRequest(request: DwgWorkerRequest): Promise<void> {
+  const { id, fileData } = request;
 
   try {
     const dxfBuffer = await convertDwgToDxf(id, fileData);
@@ -43,7 +64,7 @@ workerScope.addEventListener("message", async (event: MessageEvent<DwgWorkerRequ
     };
     workerScope.postMessage(response);
   }
-});
+}
 
 function getLibdxfrwModule(): Promise<MainModule> {
   modulePromise ??= createModule({
