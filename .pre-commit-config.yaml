@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude_types: [markdown]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: tsc
+        name: TypeScript type check
+        entry: npx tsc --noEmit
+        language: system
+        types: [ts]
+        pass_filenames: false
+        stages: [pre-commit]
+        description: |
+          Run `tsc --noEmit` against the full project to catch type errors.
+          Uses local tsconfig.json; does not emit build artifacts.
