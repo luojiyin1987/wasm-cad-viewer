@@ -4,14 +4,16 @@
 
 当前版本先把 `DXF -> 浏览器内预览 -> 单页 PDF 导出` 跑通，保持纯前端处理，适合直接部署到 Cloudflare Pages。文件不会上传到服务端，解析和渲染都发生在用户浏览器里。
 
+现在也提供一条内部原型用的实验链路：`DWG -> Web Worker + WASM -> DXF -> 预览/PDF`。
+
 ## 当前范围
 
 - 支持本地导入 `DXF`
+- 支持实验性导入 `DWG`
 - 支持拖拽上传和按钮选择文件
 - 支持浏览器内预览图纸
 - 支持一键适配视图
 - 支持把当前渲染画面导出为单页 PDF
-- `DWG` 目前只保留接入位，暂未启用
 
 ## 为什么先这样做
 
@@ -28,6 +30,7 @@
 
 - 前端框架：`Vite + TypeScript`
 - DXF 预览：`dxf-viewer`
+- DWG 转 DXF：`@mlightcad/libdxfrw-web` + `Web Worker`
 - PDF 导出：`jsPDF`
 - 部署目标：`Cloudflare Pages`
 
@@ -67,29 +70,26 @@ npx wrangler pages deploy dist
 
 ## 已知限制
 
-- 目前只启用 `DXF`
-- `DWG` 没有接入运行链路
+- `DWG` 属于实验性能力，底层先转成 DXF 再预览
 - PDF 导出为单页截图式输出，不是矢量还原
 - 大图纸仍然受浏览器内存和 WebGL 能力约束
 - 不同 CAD 方言、字体、标注、填充和特殊实体可能存在兼容差异
+- `DWG` 的兼容性高度依赖 `libdxfrw-web`，失败时并不保证可恢复
 
 ## DWG 方向说明
 
-后续如果要做 DWG，有两个方向值得继续评估：
+当前仓库优先采用 `@mlightcad/libdxfrw-web`：
 
-- `@mlightcad/libdxfrw-web`
-- `@mlightcad/libredwg-web`
+- DWG 在浏览器 `Web Worker` 中转换，避免阻塞主线程
+- 转换结果是临时 DXF，再复用现有 `dxf-viewer`
+- `wasm` 会随前端构建产物一起输出
 
-这类方案的优点是可以把 DWG 解析放进 WebAssembly，继续保持浏览器侧处理。
+这条路线的现实代价也很明确：
 
-但它们会同时带来几类现实问题：
-
-- 体积更大，首屏和运行时成本更高
-- wasm 资源加载、错误处理和兼容性更复杂
-- 许可证需要单独确认，不能直接默认商用安全
-- DWG 转 DXF 再渲染的链路需要额外测试样本支撑
-
-所以当前仓库先把 DXF 的体验闭环做好，再决定是否进入 DWG 阶段。
+- 包体更大，`wasm` 会增加前端分发体积
+- 兼容性依赖底层库，不是所有 DWG 都能稳定打开
+- 这仍然是“DWG 转 DXF 再渲染”，不是原生 DWG viewer
+- 许可证需要单独确认，不适合直接推断为外部商用可发布
 
 ## 下一步
 
@@ -97,4 +97,5 @@ npx wrangler pages deploy dist
 - 优化大文件加载反馈
 - 评估多页 PDF 和打印布局
 - 研究 DXF 转 SVG 的可行性，争取更接近矢量导出
-- 在许可证可接受的前提下验证 DWG WebAssembly 方案
+- 用真实 DWG 样本压一轮兼容性回归
+- 如果需要外部发布，先单独确认 DWG 依赖的许可证策略

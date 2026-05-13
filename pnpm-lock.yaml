@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@mlightcad/libdxfrw-web':
+        specifier: ^0.1.0
+        version: 0.1.0
+      '@mlightcad/libredwg-web':
+        specifier: ^0.7.1
+        version: 0.7.1
       dxf-viewer:
         specifier: ^1.0.47
         version: 1.0.47
@@ -183,6 +189,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@mlightcad/libdxfrw-web@0.1.0':
+    resolution: {integrity: sha512-K7yXuiorDoqXSp6sKudeImMo/WMJHCARJuHFA0CyHmpVJMfo/QttVL6QBZ0rhELC79FUI7b8cQiOWtSc17RMhw==}
+
+  '@mlightcad/libredwg-web@0.7.1':
+    resolution: {integrity: sha512-jHiLB6Rktty0eJLS+/awITmTQbTrJl4U6hkzqzzbBfHzhrR38mKnQTPLuhZMyX1IcKOM0zuDOh7Fd/J7Rj6/KQ==}
 
   '@rollup/rollup-android-arm-eabi@4.60.3':
     resolution: {integrity: sha512-x35CNW/ANXG3hE/EZpRU8MXX1JDN86hBb2wMGAtltkz7pc6cxgjpy1OMMfDosOQ+2hWqIkag/fGok1Yady9nGw==}
@@ -595,6 +607,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.12':
     optional: true
+
+  '@mlightcad/libdxfrw-web@0.1.0': {}
+
+  '@mlightcad/libredwg-web@0.7.1': {}
 
   '@rollup/rollup-android-arm-eabi@4.60.3':
     optional: true

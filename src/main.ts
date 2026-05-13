@@ -1,4 +1,8 @@
 import "./style.css";
+import type {
+  DwgWorkerRequest,
+  DwgWorkerResponse
+} from "./dwg-worker-protocol";
 
 type DxfViewerInstance = import("dxf-viewer").DxfViewer;
 type DxfViewerModule = typeof import("dxf-viewer");
@@ -15,6 +19,15 @@ type UiRefs = {
   dropzone: HTMLElement;
 };
 
+type PreparedDrawing = {
+  statusPrefix: string;
+  successMessage: string;
+  metaSuffix: string;
+  url: string;
+};
+
+const STALE_LOAD_ERROR = "STALE_LOAD";
+
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
@@ -28,8 +41,8 @@ app.innerHTML = `
         <p class="eyebrow">Browser-first CAD to PDF</p>
         <h1>在线 CAD 转 PDF，先把 DXF 跑通。</h1>
         <p class="lede">
-          文件只在浏览器内解析和渲染。当前 MVP 聚焦 DXF 预览与单页 PDF 导出，
-          DWG 保留为下一阶段的 WebAssembly 实验能力。
+          文件只在浏览器内解析和渲染。当前 MVP 已支持 DXF 预览与单页 PDF 导出，
+          并提供实验性 DWG 转 DXF 链路。
         </p>
       </div>
       <div class="hero-panel">
@@ -41,8 +54,8 @@ app.innerHTML = `
           </article>
           <article>
             <span class="panel-label">当前范围</span>
-            <strong>DXF MVP</strong>
-            <p>预览、缩放适配、导出 PDF 先闭环，DWG 稍后接入。</p>
+            <strong>DXF + 实验性 DWG</strong>
+            <p>DWG 会先在浏览器 Worker 内转成 DXF，再复用现有预览链路。</p>
           </article>
           <article>
             <span class="panel-label">部署方向</span>
@@ -67,9 +80,9 @@ app.innerHTML = `
             accept=".dxf,.dwg"
             data-role="file-input"
           />
-          <p class="dropzone-title">拖入 DXF 文件，或手动选择</p>
+          <p class="dropzone-title">拖入 DXF 或 DWG，或手动选择</p>
           <p class="dropzone-copy">
-            DWG 会提示为“计划中”，当前不会上传也不会后台转换。
+            DWG 目前属于实验功能，会先在浏览器 Worker 中转换成 DXF。
           </p>
           <button type="button" class="button button-primary" data-role="open-button">
             选择 CAD 文件
@@ -87,7 +100,7 @@ app.innerHTML = `
 
         <div class="status-card">
           <p class="status-label">状态</p>
-          <p class="status-text" data-role="status-text">等待导入 DXF 文件。</p>
+          <p class="status-text" data-role="status-text">等待导入 DXF 或 DWG 文件。</p>
           <p class="meta-text" data-role="meta-text">未载入文件</p>
         </div>
       </aside>
@@ -102,7 +115,7 @@ app.innerHTML = `
         </div>
         <div class="viewer-stage" data-role="viewer-mount">
           <div class="viewer-empty">
-            <p>DXF 载入后会在这里渲染。</p>
+            <p>DXF 或转换后的 DWG 会在这里渲染。</p>
           </div>
         </div>
       </section>
@@ -117,6 +130,8 @@ let currentFile: File | null = null;
 let currentObjectUrl: string | null = null;
 let viewerModulePromise: Promise<DxfViewerModule> | null = null;
 let jsPdfModulePromise: Promise<JsPdfModule> | null = null;
+let dwgWorker: Worker | null = null;
+let activeLoadId = 0;
 
 refs.openButton.addEventListener("click", () => {
   refs.fileInput.click();
@@ -188,66 +203,107 @@ setupDropzone(refs);
 window.addEventListener("beforeunload", () => {
   cleanupObjectUrl();
   viewer?.Destroy();
+  dwgWorker?.terminate();
 });
 
 async function openCadFile(file: File): Promise<void> {
+  const loadId = ++activeLoadId;
   const extension = getFileExtension(file.name);
 
-  if (extension === "dwg") {
-    currentFile = null;
-    cleanupObjectUrl();
-    setStatus("DWG 接入位已预留，但当前 MVP 只启用 DXF。");
-    refs.metaText.textContent = `${file.name} · 计划中`;
-    refs.fitButton.disabled = true;
-    refs.exportButton.disabled = true;
-    return;
-  }
-
-  if (extension !== "dxf") {
-    currentFile = null;
-    cleanupObjectUrl();
-    setStatus("当前仅支持导入 DXF 文件。");
-    refs.metaText.textContent = `${file.name} · 不支持`;
-    refs.fitButton.disabled = true;
-    refs.exportButton.disabled = true;
-    return;
-  }
-
-  currentFile = file;
+  currentFile = null;
   cleanupObjectUrl();
-  currentObjectUrl = URL.createObjectURL(file);
-
-  setStatus("正在解析 DXF...");
-  refs.metaText.textContent = `${file.name} · ${formatBytes(file.size)}`;
+  clearViewer();
   refs.fitButton.disabled = true;
   refs.exportButton.disabled = true;
 
+  if (extension !== "dxf" && extension !== "dwg") {
+    setStatus("当前仅支持导入 DXF 和实验性 DWG 文件。");
+    refs.metaText.textContent = `${file.name} · 不支持`;
+    return;
+  }
+
+  refs.metaText.textContent = `${file.name} · ${formatBytes(file.size)} · ${extension.toUpperCase()}`;
+
   try {
-    const activeViewer = await ensureViewer(refs.viewerMount);
-    await activeViewer.Load({
-      url: currentObjectUrl,
-      progressCbk: (phase, processedSize, totalSize) => {
-        const detail = totalSize > 0
-          ? `${phase} · ${Math.round((processedSize / totalSize) * 100)}%`
-          : `${phase} · ${formatBytes(processedSize)}`;
-        refs.statusText.textContent = `正在处理：${detail}`;
-      }
-    });
+    const preparedDrawing = extension === "dwg"
+      ? await prepareDwgForPreview(file, loadId)
+      : prepareDxfForPreview(file);
 
-    const bounds = activeViewer.GetBounds();
-    if (bounds) {
-      activeViewer.FitView(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, 24);
-    }
-    activeViewer.Render();
+    assertActiveLoad(loadId);
+    currentObjectUrl = preparedDrawing.url;
 
-    refs.fitButton.disabled = false;
-    refs.exportButton.disabled = false;
-    setStatus("DXF 已载入，可以预览或导出 PDF。");
+    await loadPreparedDrawing(file, preparedDrawing, loadId);
   } catch (error) {
+    if (isStaleLoadError(error)) {
+      return;
+    }
+    currentFile = null;
+    cleanupObjectUrl();
     refs.fitButton.disabled = true;
     refs.exportButton.disabled = true;
-    setStatus(formatError(error, "DXF 载入失败。"));
+    setStatus(formatError(error, extension === "dwg" ? "DWG 处理失败。" : "DXF 载入失败。"));
   }
+}
+
+function prepareDxfForPreview(file: File): PreparedDrawing {
+  setStatus("正在解析 DXF...");
+  return {
+    statusPrefix: "正在处理 DXF",
+    successMessage: "DXF 已载入，可以预览或导出 PDF。",
+    metaSuffix: "DXF",
+    url: URL.createObjectURL(file)
+  };
+}
+
+async function prepareDwgForPreview(file: File, loadId: number): Promise<PreparedDrawing> {
+  setStatus("实验性 DWG 支持：正在准备转换器...");
+  const dxfBuffer = await convertDwgToDxf(file, loadId);
+  assertActiveLoad(loadId);
+
+  setStatus("DWG 已转换为 DXF，正在载入预览...");
+
+  return {
+    statusPrefix: "正在载入转换后的 DXF",
+    successMessage: "DWG 已转换并载入，可以预览或导出 PDF。",
+    metaSuffix: "DWG → DXF",
+    url: URL.createObjectURL(new Blob([dxfBuffer], { type: "application/dxf" }))
+  };
+}
+
+async function loadPreparedDrawing(
+  file: File,
+  preparedDrawing: PreparedDrawing,
+  loadId: number
+): Promise<void> {
+  const activeViewer = await ensureViewer(refs.viewerMount);
+  assertActiveLoad(loadId);
+
+  await activeViewer.Load({
+    url: preparedDrawing.url,
+    progressCbk: (phase, processedSize, totalSize) => {
+      if (!isActiveLoad(loadId)) {
+        return;
+      }
+      const detail = totalSize > 0
+        ? `${phase} · ${Math.round((processedSize / totalSize) * 100)}%`
+        : `${phase} · ${formatBytes(processedSize)}`;
+      refs.statusText.textContent = `${preparedDrawing.statusPrefix}：${detail}`;
+    }
+  });
+
+  assertActiveLoad(loadId);
+
+  const bounds = activeViewer.GetBounds();
+  if (bounds) {
+    activeViewer.FitView(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, 24);
+  }
+  activeViewer.Render();
+
+  currentFile = file;
+  refs.fitButton.disabled = false;
+  refs.exportButton.disabled = false;
+  refs.metaText.textContent = `${file.name} · ${formatBytes(file.size)} · ${preparedDrawing.metaSuffix}`;
+  setStatus(preparedDrawing.successMessage);
 }
 
 async function ensureViewer(container: HTMLElement): Promise<DxfViewerInstance> {
@@ -276,6 +332,92 @@ function loadViewerModule(): Promise<DxfViewerModule> {
 function loadJsPdfModule(): Promise<JsPdfModule> {
   jsPdfModulePromise ??= import("jspdf");
   return jsPdfModulePromise;
+}
+
+async function convertDwgToDxf(file: File, loadId: number): Promise<ArrayBuffer> {
+  const worker = getDwgWorker();
+  const fileData = await file.arrayBuffer();
+  assertActiveLoad(loadId);
+
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const handleMessage = (event: MessageEvent<DwgWorkerResponse>) => {
+      const message = event.data;
+      if (message.id !== loadId) {
+        return;
+      }
+
+      if (message.type === "progress") {
+        if (isActiveLoad(loadId)) {
+          refs.statusText.textContent = message.message;
+        }
+        return;
+      }
+
+      cleanupListeners();
+
+      if (message.type === "success") {
+        resolve(message.dxfBuffer);
+        return;
+      }
+
+      reject(new Error(message.error));
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      cleanupListeners();
+      reject(new Error(event.message || "DWG worker crashed."));
+    };
+
+    const cleanupListeners = () => {
+      worker.removeEventListener("message", handleMessage);
+      worker.removeEventListener("error", handleError);
+    };
+
+    worker.addEventListener("message", handleMessage);
+    worker.addEventListener("error", handleError);
+
+    const payload: DwgWorkerRequest = {
+      id: loadId,
+      fileName: file.name,
+      fileData
+    };
+
+    worker.postMessage(payload, [fileData]);
+  });
+}
+
+function getDwgWorker(): Worker {
+  if (dwgWorker) {
+    return dwgWorker;
+  }
+
+  dwgWorker = new Worker(
+    new URL("./dwg-converter.worker.ts", import.meta.url),
+    { type: "module" }
+  );
+  return dwgWorker;
+}
+
+function clearViewer(): void {
+  if (!viewer) {
+    return;
+  }
+  viewer.Clear();
+  viewer.Render();
+}
+
+function isActiveLoad(loadId: number): boolean {
+  return loadId === activeLoadId;
+}
+
+function assertActiveLoad(loadId: number): void {
+  if (!isActiveLoad(loadId)) {
+    throw new Error(STALE_LOAD_ERROR);
+  }
+}
+
+function isStaleLoadError(error: unknown): boolean {
+  return error instanceof Error && error.message === STALE_LOAD_ERROR;
 }
 
 function setupDropzone(refs: UiRefs): void {

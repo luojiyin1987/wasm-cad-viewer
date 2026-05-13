@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mlightcad/libdxfrw-web": "^0.1.0",
+    "@mlightcad/libredwg-web": "^0.7.1",
     "dxf-viewer": "^1.0.47",
     "jspdf": "^4.2.1"
   },
