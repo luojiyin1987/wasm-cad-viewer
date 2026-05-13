@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "wrangler pages deploy"
   },
   "dependencies": {
     "@mlightcad/libdxfrw-web": "^0.1.0",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "typescript": "^6.0.3",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "wrangler": "^4.14.0"
   }
 }
