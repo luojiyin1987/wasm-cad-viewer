@@ -1,6 +1,5 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "wasm-cad-viewer",
-  "compatibility_date": "2026-05-13",
   "pages_build_output_dir": "./dist"
 }
