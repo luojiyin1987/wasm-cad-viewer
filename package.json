@@ -1,0 +1,19 @@
+{
+  "name": "wasm-cad-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "dxf-viewer": "^1.0.47",
+    "jspdf": "^4.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^6.0.3"
+  }
+}
