@@ -224,16 +224,25 @@ async function openCadFile(file: File): Promise<void> {
 
   refs.metaText.textContent = `${file.name} · ${formatBytes(file.size)} · ${extension.toUpperCase()}`;
 
+  let stagingUrl: string | null = null;
+
   try {
     const preparedDrawing = extension === "dwg"
       ? await prepareDwgForPreview(file, loadId)
       : prepareDxfForPreview(file);
 
+    stagingUrl = preparedDrawing.url;
+
     assertActiveLoad(loadId);
-    currentObjectUrl = preparedDrawing.url;
+    currentObjectUrl = stagingUrl;
+    stagingUrl = null;
 
     await loadPreparedDrawing(file, preparedDrawing, loadId);
   } catch (error) {
+    if (stagingUrl) {
+      URL.revokeObjectURL(stagingUrl);
+      stagingUrl = null;
+    }
     if (isStaleLoadError(error)) {
       return;
     }
