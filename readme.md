@@ -91,6 +91,41 @@ npx wrangler pages deploy dist
 - 这仍然是“DWG 转 DXF 再渲染”，不是原生 DWG viewer
 - 许可证需要单独确认，不适合直接推断为外部商用可发布
 
+## 许可证与法律风险
+
+本项目采用 **[GNU General Public License v3.0 (GPL-3.0)](./LICENSE)**。
+
+### 为什么是 GPL-3.0
+
+本项目构建产物中捆绑了以下具有强 copyleft 性质的依赖：
+
+| 依赖 | 许可证 | 说明 |
+|---|---|---|
+| `@mlightcad/libdxfrw-web` | **GPL-2.0-only** | DWG 解析与 DXF 导出（WASM） |
+| `@mlightcad/libredwg-web` | **GPL-3.0** | DWG 解析 fallback（WASM） |
+| `dxf-viewer` | MPL-2.0 | DXF 预览渲染 |
+| `jspdf` | MIT | PDF 导出 |
+
+由于两个 DWG 库的 WASM 二进制和 JS 胶水代码会被 Vite bundler 打包进 `dist/` 并随前端部署分发，根据 GPL 的传染性条款，**包含这些代码的完整构建产物必须遵循 GPL 开源**。
+
+### 已知许可证冲突
+
+- `libdxfrw-web` 采用 **GPL-2.0-only**
+- `libredwg-web` 采用 **GPL-3.0**
+
+这两个许可证在严格意义上**并不兼容**：GPL-2.0-only 不允许添加 GPL-3.0 的额外限制条款。当前项目将它们作为独立 fallback 链路使用（先尝试 libdxfrw，失败后再尝试 libredwg），并非在同一调用栈中混合链接，但构建产物中仍同时包含两者的 WASM 文件。
+
+**本项目选择以 GPL-3.0 作为整体许可证**，这是覆盖范围最广、限制最严格的选项。如果你对此有顾虑，建议：
+
+1. **只使用 DXF 功能**：移除两个 GPL DWG 依赖，项目可改用 MIT 等宽松许可证
+2. **后端分离架构**：将 DWG 转换放到服务端 API，前端仅保留 DXF 预览（MPL-2.0 + MIT）
+
+### 商用注意事项
+
+- 本项目的构建产物**不适合直接闭源商用**
+- 如需闭源部署，必须先移除所有 GPL 依赖，或采用后端 API 架构
+- 部署到 Cloudflare Pages 等 CDN 属于"分发"行为，GPL 条款适用
+
 ## 下一步
 
 - 接入真实 DXF 样本，补一批回归用例
@@ -98,4 +133,4 @@ npx wrangler pages deploy dist
 - 评估多页 PDF 和打印布局
 - 研究 DXF 转 SVG 的可行性，争取更接近矢量导出
 - 用真实 DWG 样本压一轮兼容性回归
-- 如果需要外部发布，先单独确认 DWG 依赖的许可证策略
+- 评估将 DWG 转换迁移至后端 API 的可行性，解除前端 GPL 绑定
