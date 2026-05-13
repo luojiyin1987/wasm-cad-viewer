@@ -144,14 +144,19 @@ async function convertWithLibredwg(id: number, fileData: ArrayBuffer): Promise<A
   const libreDwg = await getLibreDwg();
 
   postProgress(id, "实验性 DWG 支持：libredwg 正在尝试转换...");
-  const dxfBytes = libreDwg.dwg_write_dxf(fileData);
 
-  if (!dxfBytes || dxfBytes.byteLength === 0) {
-    throw new Error("DWG 可以读取，但 libredwg 没有产出 DXF。");
+  try {
+    const dxfBytes = libreDwg.dwg_write_dxf(fileData);
+
+    if (!dxfBytes || dxfBytes.byteLength === 0) {
+      throw new Error("DWG 可以读取，但 libredwg 没有产出 DXF。");
+    }
+
+    const copy = dxfBytes.slice().buffer;
+    return copy;
+  } finally {
+    // dwg_write_dxf 是高层 API，内部已管理资源，无需手动释放
   }
-
-  const copy = new Uint8Array(dxfBytes).slice().buffer;
-  return copy;
 }
 
 async function getLibreDwg(): Promise<LibreDwg> {
