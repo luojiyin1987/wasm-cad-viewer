@@ -120,6 +120,14 @@ app.innerHTML = `
         </div>
       </section>
     </section>
+
+    <footer class="site-footer">
+      <p>
+        开源项目 ·
+        <a href="https://github.com/luojiyin1987/wasm-cad-viewer" target="_blank" rel="noopener">GitHub</a> ·
+        <a href="https://github.com/luojiyin1987/wasm-cad-viewer/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>
+      </p>
+    </footer>
   </main>
 `;
 

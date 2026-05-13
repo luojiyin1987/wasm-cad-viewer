@@ -328,6 +328,24 @@ h1 {
   font-size: 1.02rem;
 }
 
+.site-footer {
+  margin-top: 24px;
+  text-align: center;
+  color: #7f6e60;
+  font-size: 0.9rem;
+}
+
+.site-footer a {
+  color: #9a5e24;
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+
+.site-footer a:hover {
+  color: #c66326;
+  text-decoration: underline;
+}
+
 @media (max-width: 1024px) {
   .hero,
   .workspace {
