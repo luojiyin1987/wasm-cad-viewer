@@ -11,7 +11,7 @@ import {
   LibreDwg,
   createModule as createLibreDwgModule
 } from "@mlightcad/libredwg-web";
-import libredwgWasmUrl from "../node_modules/@mlightcad/libredwg-web/wasm/libredwg-web.wasm?url";
+import libredwgWasmUrl from "@mlightcad/libredwg-web/wasm/libredwg-web.wasm?url";
 import type {
   DwgWorkerErrorResponse,
   DwgWorkerProgressResponse,
