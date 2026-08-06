@@ -6,9 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/verify-build.mjs",
+    "verify:build": "node scripts/verify-build.mjs",
+    "verify:production": "node scripts/verify-production.mjs",
     "preview": "vite preview",
-    "deploy": "wrangler pages deploy"
+    "deploy": "pnpm run deploy:production",
+    "deploy:production": "pnpm run build && wrangler pages deploy dist --project-name wasm-cad-viewer --branch main"
   },
   "dependencies": {
     "@mlightcad/libdxfrw-web": "^0.1.0",
