@@ -6,10 +6,94 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-    <title>WASM CAD Viewer</title>
+    <title>在线 CAD 转 PDF｜DXF 预览与单页 PDF 导出</title>
+    <meta
+      name="description"
+      content="免费在线预览 DXF 并导出单页 PDF，实验性支持 DWG。文件仅在浏览器本地处理，不上传服务器。"
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <link rel="canonical" href="https://cad2pdf.itea.fit/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="CAD to PDF" />
+    <meta property="og:title" content="在线 CAD 转 PDF｜DXF 预览与单页 PDF 导出" />
+    <meta
+      property="og:description"
+      content="在浏览器中预览 DXF 并导出单页 PDF。文件不上传服务器，DWG 支持仍处于实验阶段。"
+    />
+    <meta property="og:url" content="https://cad2pdf.itea.fit/" />
+    <meta property="og:image" content="https://cad2pdf.itea.fit/og-image.svg" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="在线 CAD 转 PDF：DXF 本地预览与导出" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="在线 CAD 转 PDF｜DXF 预览与单页 PDF 导出" />
+    <meta
+      name="twitter:description"
+      content="免费在线预览 DXF 并导出单页 PDF，文件仅在浏览器本地处理。"
+    />
+    <meta name="twitter:image" content="https://cad2pdf.itea.fit/og-image.svg" />
+    <meta name="twitter:image:alt" content="在线 CAD 转 PDF：DXF 本地预览与导出" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "@id": "https://cad2pdf.itea.fit/#app",
+        "name": "在线 CAD 转 PDF",
+        "alternateName": "WASM CAD Viewer",
+        "url": "https://cad2pdf.itea.fit/",
+        "description": "在浏览器中预览 DXF 并将当前视图导出为单页 PDF，实验性支持 DWG 转换。文件不会上传到服务器。",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires a modern browser with WebAssembly and WebGL support.",
+        "inLanguage": "zh-CN",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "DXF browser preview",
+          "Single-page PDF export",
+          "Local browser processing",
+          "Experimental DWG to DXF conversion"
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <main class="shell">
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Browser-first CAD to PDF</p>
+            <h1>在线 CAD 转 PDF：DXF 本地预览与导出</h1>
+            <p class="lede">
+              免费在浏览器中预览 DXF，并将当前视图导出为单页 PDF。
+              文件仅在本地解析，不上传服务器；DWG 支持仍处于实验阶段。
+            </p>
+          </div>
+        </section>
+        <section class="workspace" aria-label="工具功能概览">
+          <article class="control-card">
+            <div class="control-header">
+              <p class="eyebrow">Privacy-first workflow</p>
+              <h2>本地处理 CAD 文件</h2>
+            </div>
+            <p>
+              支持 DXF 预览、视图适配和单页 PDF 导出。DWG 文件会尝试在浏览器 Worker
+              中转换为 DXF，再进入同一预览流程。
+            </p>
+          </article>
+        </section>
+      </main>
+    </div>
+    <noscript>此工具需要启用 JavaScript 才能预览 CAD 文件并导出 PDF。</noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
-  </html>
+</html>
