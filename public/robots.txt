@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cad2pdf.itea.fit/sitemap.xml

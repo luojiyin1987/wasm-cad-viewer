@@ -1,6 +1,10 @@
 # WASM CAD Viewer
 
+[![Online demo](https://img.shields.io/badge/demo-cad2pdf.itea.fit-2ea44f)](https://cad2pdf.itea.fit/)
+
 一个偏务实的在线 CAD 转 PDF MVP。
+
+👉 [打开在线 CAD 转 PDF 工具](https://cad2pdf.itea.fit/)
 
 当前版本先把 `DXF -> 浏览器内预览 -> 单页 PDF 导出` 跑通，保持纯前端处理，适合直接部署到 Cloudflare Pages。文件不会上传到服务端，解析和渲染都发生在用户浏览器里。
 
